@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Code Quest: forEach & addEventListener!</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti for victory celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Fredoka', 'sans-serif'],
+                        code: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            purple: '#6C5CE7',
+                            pink: '#FD79A8',
+                            yellow: '#FDCB6E',
+                            green: '#00B894',
+                            blue: '#0984E3',
+                            orange: '#E17055',
+                            dark: '#2D3436'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #F8EFBA;
+            background-image: radial-gradient(#FFEAA7 2px, transparent 2px);
+            background-size: 24px 24px;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .puzzle-block {
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+        }
+        
+        .puzzle-block:active {
+            cursor: grabbing;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(10px);
+            border: 4px solid #2D3436;
+            box-shadow: 6px 6px 0px #2D3436;
+        }
+
+        .btn-pop {
+            box-shadow: 0px 5px 0px #2D3436;
+            transition: all 0.1s ease;
+        }
+
+        .btn-pop:active {
+            transform: translateY(4px);
+            box-shadow: 0px 1px 0px #2D3436;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFEAA7;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #6C5CE7;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-brand-dark p-2 sm:p-4">
+
+    <!-- Header -->
+    <header class="max-w-5xl w-full mx-auto mb-4">
+        <div class="glass-panel rounded-2xl p-4 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-yellow text-brand-dark p-3 rounded-2xl border-2 border-brand-dark text-2xl font-bold">
+                    🚀 JS
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-wide text-brand-purple">JS Code Quest!</h1>
+                    <p class="text-xs sm:text-sm text-gray-600 font-semibold">Master loops with forEach() & event listeners!</p>
+                </div>
+            </div>
+
+            <!-- Score & Level Badge -->
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-pink text-white px-4 py-2 rounded-xl border-2 border-brand-dark font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-star text-brand-yellow"></i>
+                    <span id="score-display">Score: 0</span>
+                </div>
+                <div class="bg-brand-blue text-white px-4 py-2 rounded-xl border-2 border-brand-dark font-bold text-sm hidden sm:block">
+                    <span id="rank-display">🐣 Novice Coder</span>
+                </div>
+                <button id="toggle-scratchpad-btn" class="bg-brand-green text-white p-2 rounded-xl border-2 border-brand-dark font-bold hover:bg-emerald-600 transition" title="Open Code Playground">
+                    <i class="fa-solid fa-code text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="mt-3 bg-white rounded-full border-2 border-brand-dark h-6 p-1 relative overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-brand-pink to-brand-purple h-full rounded-full transition-all duration-300 w-0"></div>
+            <span id="progress-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-brand-dark">Question 1 of 30</span>
+        </div>
+    </header>
+
+    <!-- Code Playground Modal -->
+    <div id="scratchpad-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel rounded-3xl max-w-2xl w-full p-6 bg-white relative">
+            <button id="close-scratchpad" class="absolute top-4 right-4 bg-brand-orange text-white w-10 h-10 rounded-full border-2 border-brand-dark font-bold hover:opacity-90">✕</button>
+            <h3 class="text-2xl font-bold mb-2 flex items-center gap-2 text-brand-purple">
+                <i class="fa-solid fa-terminal"></i> Code Playground
+            </h3>
+            <p class="text-sm text-gray-600 mb-3">Test standard JavaScript functions here!</p>
+            
+            <textarea id="scratchpad-code" class="w-full h-36 p-3 code-font bg-gray-900 text-green-400 rounded-xl border-2 border-brand-dark text-sm focus:outline-none" spellcheck="false">// Try JavaScript here!
+var toys = ["Robot", "Car", "Teddy"];
+toys.forEach(function(toy) {
+  console.log("I love " + toy + "!");
+});
+</textarea>
+            
+            <div class="flex justify-between items-center my-3">
+                <button id="run-scratchpad" class="bg-brand-green text-white font-bold px-6 py-2 rounded-xl border-2 border-brand-dark btn-pop hover:bg-emerald-600">
+                    ▶ Run Code
+                </button>
+                <button id="clear-scratchpad" class="bg-gray-200 text-brand-dark font-bold px-4 py-2 rounded-xl border-2 border-brand-dark text-sm hover:bg-gray-300">
+                    Clear Console
+                </button>
+            </div>
+
+            <div class="bg-black text-white p-3 rounded-xl border-2 border-brand-dark h-28 overflow-y-auto code-font text-xs" id="scratchpad-output">
+                <span class="text-gray-500">> Console output will appear here...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Quiz Container -->
+    <main class="max-w-5xl w-full mx-auto my-2 flex-1 flex flex-col justify-center">
+        <!-- Start Screen -->
+        <div id="start-screen" class="glass-panel rounded-3xl p-6 sm:p-10 text-center bg-white space-y-6">
+            <div class="text-6xl animate-bounce">🤖⚡</div>
+            <h2 class="text-3xl sm:text-5xl font-extrabold text-brand-purple">Ready for the Code Quest?</h2>
+            <p class="text-lg sm:text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
+                Join our fun adventure to master <span class="bg-brand-yellow px-2 py-1 rounded-md code-font font-bold">forEach()</span> loops 
+                and <span class="bg-brand-pink text-white px-2 py-1 rounded-md code-font font-bold">addEventListener()</span> using regular 
+                <span class="bg-brand-blue text-white px-2 py-1 rounded-md code-font font-bold">function() { }</span> syntax!
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto pt-2">
+                <div class="p-4 bg-purple-50 rounded-2xl border-2 border-brand-purple text-left">
+                    <div class="text-2xl mb-1">🔁</div>
+                    <h4 class="font-bold text-brand-purple">Array Loops</h4>
+                    <p class="text-xs text-gray-600">Iterate over toys, scores, fruits, and superpowers!</p>
+                </div>
+                <div class="p-4 bg-pink-50 rounded-2xl border-2 border-brand-pink text-left">
+                    <div class="text-2xl mb-1">👆</div>
+                    <h4 class="font-bold text-brand-pink">EventListeners</h4>
+                    <p class="text-xs text-gray-600">Listen for clicks, mouse hovers, and key presses!</p>
+                </div>
+                <div class="p-4 bg-blue-50 rounded-2xl border-2 border-brand-blue text-left">
+                    <div class="text-2xl mb-1">🧩</div>
+                    <h4 class="font-bold text-brand-blue">Arrange Puzzles</h4>
+                    <p class="text-xs text-gray-600">Move blocks to construct working JS code!</p>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button id="start-btn" class="bg-brand-green hover:bg-emerald-500 text-white text-2xl font-extrabold px-10 py-4 rounded-2xl border-3 border-brand-dark btn-pop transition transform hover:scale-105">
+                    Start Quest! 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- Question View Container -->
+        <div id="quiz-screen" class="hidden glass-panel rounded-3xl p-5 sm:p-8 bg-white flex flex-col justify-between min-h-[500px]">
+            <!-- Header Badges -->
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <span id="question-category" class="bg-brand-purple text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-brand-dark uppercase tracking-wider">
+                    Category
+                </span>
+                <span id="question-type-badge" class="bg-brand-yellow text-brand-dark text-xs font-bold px-3 py-1.5 rounded-xl border border-brand-dark">
+                    Multiple Choice
+                </span>
+            </div>
+
+            <!-- Question Prompt -->
+            <div id="question-prompt" class="text-lg sm:text-2xl font-bold text-brand-dark mb-4 leading-snug">
+                Question prompt...
+            </div>
+
+            <!-- Question Code Snippet -->
+            <div id="code-snippet-box" class="hidden mb-6 bg-gray-900 text-emerald-400 p-4 rounded-2xl border-2 border-brand-dark code-font text-sm sm:text-base overflow-x-auto relative">
+                <pre id="code-snippet-text"></pre>
+            </div>
+
+            <!-- Dynamic Answer Area -->
+            <div id="answer-container" class="my-4 flex-1 flex flex-col justify-center">
+                <!-- Answer controls injected dynamically -->
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-box" class="hidden my-4 p-4 rounded-2xl border-2 border-brand-dark text-sm sm:text-base transition-all">
+                <div class="flex items-center gap-2 font-bold text-lg mb-1" id="feedback-title">
+                    <!-- Feedback Title -->
+                </div>
+                <p id="feedback-text" class="text-gray-800"></p>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="flex justify-between items-center pt-4 border-t-2 border-gray-100 mt-4">
+                <button id="prev-btn" class="bg-gray-200 text-brand-dark font-bold px-5 py-2.5 rounded-xl border-2 border-brand-dark btn-pop hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                    ⬅ Prev
+                </button>
+                <button id="submit-btn" class="bg-brand-yellow text-brand-dark font-extrabold px-8 py-2.5 rounded-xl border-2 border-brand-dark btn-pop hover:bg-yellow-400">
+                    Check Answer ✨
+                </button>
+                <button id="next-btn" class="hidden bg-brand-blue text-white font-extrabold px-8 py-2.5 rounded-xl border-2 border-brand-dark btn-pop hover:bg-blue-600">
+                    Next ➡
+                </button>
+            </div>
+        </div>
+
+        <!-- Victory Certificate Screen -->
+        <div id="victory-screen" class="hidden glass-panel rounded-3xl p-6 sm:p-10 text-center bg-white space-y-6">
+            <div class="text-6xl animate-bounce">🏆🎉</div>
+            <h2 class="text-3xl sm:text-5xl font-black text-brand-purple">Quest Completed!</h2>
+            <p class="text-lg text-gray-600">You mastered forEach() & addEventListener() with classic functions!</p>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                <div class="p-3 bg-yellow-50 rounded-2xl border-2 border-brand-yellow">
+                    <div class="text-2xl font-bold text-brand-dark" id="final-score">0</div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Final Score</div>
+                </div>
+                <div class="p-3 bg-green-50 rounded-2xl border-2 border-brand-green">
+                    <div class="text-2xl font-bold text-brand-green" id="final-accuracy">0%</div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Accuracy</div>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-2xl border-2 border-brand-purple">
+                    <div class="text-2xl font-bold text-brand-purple" id="final-stars">⭐⭐⭐</div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Star Rating</div>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-2xl border-2 border-brand-blue">
+                    <div class="text-xs sm:text-sm font-bold text-brand-blue mt-2" id="final-rank">JS Wizard</div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Rank Earned</div>
+                </div>
+            </div>
+
+            <!-- Certificate Card -->
+            <div id="certificate-card" class="bg-amber-50 border-4 border-dashed border-brand-purple p-6 rounded-3xl max-w-2xl mx-auto text-left relative overflow-hidden my-6">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-brand-purple text-9xl font-black">JS</div>
+                <div class="text-center space-y-2">
+                    <p class="text-xs uppercase font-extrabold tracking-widest text-brand-purple">Official Certificate of Achievement</p>
+                    <h3 class="text-2xl sm:text-3xl font-black text-brand-dark">JavaScript Code Explorer</h3>
+                    <p class="text-sm text-gray-600">This certifies that our young coder has mastered</p>
+                    <div class="inline-block bg-brand-yellow font-black px-4 py-1 rounded-full border-2 border-brand-dark text-brand-dark text-sm">
+                        forEach() • addEventListener() • Classic function() Syntax
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4 pt-2">
+                <button id="print-cert-btn" class="bg-brand-purple text-white font-extrabold px-6 py-3 rounded-2xl border-2 border-brand-dark btn-pop hover:bg-purple-700">
+                    🖨 Print Certificate
+                </button>
+                <button id="restart-btn" class="bg-brand-green text-white font-extrabold px-6 py-3 rounded-2xl border-2 border-brand-dark btn-pop hover:bg-emerald-600">
+                    🔄 Play Again
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-5xl w-full mx-auto text-center py-3 text-xs font-bold text-gray-600">
+        Created by Smitha 🚀 • forEach() JavaScript loop & event listeners!
+    </footer>
+
+    <!-- JavaScript Logic & Question Bank -->
+    <script>
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playCorrect() {
+                this.init();
+                if (!this.ctx) return;
+                var now = this.ctx.currentTime;
+                var osc = this.ctx.createOscillator();
+                var gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.3); // C6
+                
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+            playWrong() {
+                this.init();
+                if (!this.ctx) return;
+                var now = this.ctx.currentTime;
+                var osc = this.ctx.createOscillator();
+                var gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now); // A3
+                osc.frequency.linearRampToValueAtTime(140, now + 0.25);
+                
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        var sound = new SoundFX();
+
+        var questions = [
+            // --- SECTION 1: forEach Loop Basics ---
+            {
+                id: 1,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "What does the forEach() loop do in JavaScript?",
+                options: [
+                    "It runs a function once for EVERY item in an array",
+                    "It deletes all items from an array",
+                    "It creates a new array with doubled numbers",
+                    "It renames all variables to lowercase"
+                ],
+                answer: 0,
+                explanation: "forEach() visits every element in an array one by one and executes your callback function!"
+            },
+            {
+                id: 2,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "How many times will console.log() run in this code?",
+                code: "var toys = ['Robot', 'Teddy', 'Car', 'Blocks'];\ntoys.forEach(function(toy) {\n  console.log(toy);\n});",
+                options: ["1 time", "3 times", "4 times", "0 times"],
+                answer: 2,
+                explanation: "There are 4 items in the toys array, so the callback function runs 4 times!"
+            },
+            {
+                id: 3,
+                category: "forEach Loop",
+                type: "fill",
+                prompt: "Fill in the missing keyword to create a callback function inside forEach():",
+                template: "var pets = ['🐶', '🐱'];\npets.forEach([DROP](pet) {\n  console.log(pet);\n});",
+                options: ["function", "def", "action", "loop"],
+                answer: "function",
+                explanation: "Use the keyword 'function' to pass a callback into forEach()!"
+            },
+            {
+                id: 4,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "What will be logged to the console when this loop runs?",
+                code: "var fruits = ['🍎 Apple', '🍌 Banana'];\nfruits.forEach(function(fruit) {\n  console.log('I love ' + fruit);\n});",
+                options: [
+                    "I love 🍎 Apple\nI love 🍌 Banana",
+                    "I love fruits",
+                    "🍎 Apple 🍌 Banana",
+                    "undefined"
+                ],
+                answer: 0,
+                explanation: "The function prints 'I love ' followed by the fruit name for each item!"
+            },
+            {
+                id: 5,
+                category: "forEach Loop",
+                type: "debug",
+                prompt: "Spot the Bug! Why will this code throw an error?",
+                code: "var numbers = [1, 2, 3];\nnumbers.foreach(function(num) {\n  console.log(num);\n});",
+                options: [
+                    "'foreach' must be capitalized as 'forEach' (with a capital 'E')",
+                    "Numbers cannot be stored in an array",
+                    "Missing quotation marks around 1, 2, 3",
+                    "The word function is spelled wrong"
+                ],
+                answer: 0,
+                explanation: "JavaScript is case-sensitive! It must be written as forEach with a capital 'E'."
+            },
+            {
+                id: 6,
+                category: "forEach Loop",
+                type: "puzzle",
+                prompt: "Arrange the blocks in order to build a working forEach loop!",
+                blocks: [
+                    "var colors = ['Red', 'Blue'];",
+                    "colors.forEach(",
+                    "function(color) {",
+                    "console.log(color); });"
+                ],
+                correctOrder: [0, 1, 2, 3],
+                explanation: "First define array -> call .forEach( -> function(color) { -> console.log(color); });"
+            },
+
+            // --- SECTION 2: forEach Parameters & Logic ---
+            {
+                id: 7,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "What does the second parameter ('index') represent in forEach(function(item, index) { ... })?",
+                code: "['a', 'b', 'c'].forEach(function(item, index) {\n  console.log(index);\n});",
+                options: [
+                    "The position number of the current item (starting at 0)",
+                    "The total count of items in the array",
+                    "A random magic number",
+                    "The name of the array variable"
+                ],
+                answer: 0,
+                explanation: "The second parameter 'index' gives the position number: 0 for 'a', 1 for 'b', 2 for 'c'."
+            },
+            {
+                id: 8,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "What total sum will be logged at the end of this code?",
+                code: "var sum = 0;\nvar points = [10, 20, 30];\npoints.forEach(function(p) {\n  sum = sum + p;\n});\nconsole.log(sum);",
+                options: ["60", "102030", "0", "600"],
+                answer: 0,
+                explanation: "0 + 10 = 10, then + 20 = 30, then + 30 = 60!"
+            },
+            {
+                id: 9,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "What will this index loop print to the console?",
+                code: "var superheroes = ['Batman', 'Spidey'];\nsuperheroes.forEach(function(hero, i) {\n  console.log(i + ': ' + hero);\n});",
+                options: [
+                    "0: Batman\n1: Spidey",
+                    "1: Batman\n2: Spidey",
+                    "Batman: 0\nSpidey: 1",
+                    "0: Spidey\n1: Batman"
+                ],
+                answer: 0,
+                explanation: "Array positions always start at 0! Index 0 is Batman and Index 1 is Spidey."
+            },
+            {
+                id: 10,
+                category: "forEach Loop",
+                type: "fill",
+                prompt: "Complete the function parameter to receive each item from the array:",
+                template: "var items = ['🎮', '🛹'];\nitems.forEach(function([DROP]) {\n  console.log(item);\n});",
+                options: ["item", "for", "arrayName", "loopNumber"],
+                answer: "item",
+                explanation: "The parameter inside function(item) receives each array element!"
+            },
+            {
+                id: 11,
+                category: "forEach Loop",
+                type: "mcq",
+                prompt: "How many times will 'Bloop!' print in this code?",
+                code: "var bubbles = ['🫧', '🫧', '🫧', '🫧'];\nbubbles.forEach(function() {\n  console.log('Bloop!');\n});",
+                options: ["4 times", "1 time", "0 times", "8 times"],
+                answer: 0,
+                explanation: "Since there are 4 bubble elements in the array, the function runs 4 times!"
+            },
+            {
+                id: 12,
+                category: "forEach Loop",
+                type: "puzzle",
+                prompt: "Order the puzzle pieces to calculate total score using forEach!",
+                blocks: [
+                    "var total = 0;",
+                    "[5, 10].forEach(",
+                    "function(num) {",
+                    "total = total + num; });"
+                ],
+                correctOrder: [0, 1, 2, 3],
+                explanation: "Define sum variable -> array.forEach( -> function(num) { -> accumulate total };"
+            },
+
+            // --- SECTION 3: addEventListener Basics ---
+            {
+                id: 13,
+                category: "addEventListener",
+                type: "mcq",
+                prompt: "What does addEventListener() do in JavaScript?",
+                options: [
+                    "It waits for user actions (like clicks or key presses) and runs code when they happen",
+                    "It changes the text color to rainbow automatically",
+                    "It adds numbers together in an array",
+                    "It restarts the webpage"
+                ],
+                answer: 0,
+                explanation: "addEventListener() acts like a guard that listens for events like 'click' or 'mouseover'!"
+            },
+            {
+                id: 14,
+                category: "addEventListener",
+                type: "mcq",
+                prompt: "Which string parameter is used to listen for a mouse button tap?",
+                options: ["'click'", "'onclick'", "'press'", "'buttonTap'"],
+                answer: 0,
+                explanation: "Inside addEventListener(), use 'click' without the 'on' prefix!"
+            },
+            {
+                id: 15,
+                category: "addEventListener",
+                type: "fill",
+                prompt: "Complete the code to attach a click listener to the magic button:",
+                template: "button.addEventListener('[DROP]', function() {\n  console.log('Magic!');\n});",
+                options: ["click", "onclick", "press", "mouse"],
+                answer: "click",
+                explanation: "The standard event name for clicks is 'click'."
+            },
+            {
+                id: 16,
+                category: "addEventListener",
+                type: "debug",
+                prompt: "Spot the Bug! Why won't this event listener run?",
+                code: "button.addEventlistener('click', function() {\n  console.log('Clicked!');\n});",
+                options: [
+                    "'addEventlistener' should be 'addEventListener' (with a capital 'L')",
+                    "'click' must be written as 'onClick'",
+                    "Cannot use the word function here",
+                    "Missing curly braces inside"
+                ],
+                answer: 0,
+                explanation: "Capitalization matters in JavaScript! Write addEventListener with a capital 'L'."
+            },
+            {
+                id: 17,
+                category: "addEventListener",
+                type: "mcq",
+                prompt: "Which event fires when your mouse pointer glides over an element?",
+                options: ["'mouseover'", "'mouseleave'", "'keydown'", "'submit'"],
+                answer: 0,
+                explanation: "'mouseover' triggers as soon as the mouse cursor enters the element's area!"
+            },
+            {
+                id: 18,
+                category: "addEventListener",
+                type: "puzzle",
+                prompt: "Arrange the pieces to attach a click listener to a button!",
+                blocks: [
+                    "btn.",
+                    "addEventListener(",
+                    "'click', ",
+                    "function() { alert('Hi!'); } );"
+                ],
+                correctOrder: [0, 1, 2, 3],
+                explanation: "Target element -> addEventListener( -> event name 'click', -> callback function() { ... });"
+            },
+
+            // --- SECTION 4: addEventListener Advanced & Event Object ---
+            {
+                id: 19,
+                category: "addEventListener",
+                type: "mcq",
+                prompt: "When a user presses a keyboard key, which event type should you listen for?",
+                options: ["'keydown'", "'click'", "'mouseover'", "'change'"],
+                answer: 0,
+                explanation: "'keydown' triggers whenever a key on the keyboard is pressed!"
+            },
+            {
+                id: 20,
+                category: "addEventListener",
+                type: "mcq",
+                prompt: "What does the event parameter 'e' contain in an event listener callback function(e) { ... }?",
+                code: "button.addEventListener('click', function(e) {\n  console.log(e.target);\n});",
+                options: [
+                    "An object containing details about the event (like which element was clicked)",
+                    "A list of all numbers in JavaScript",
+                    "The total score of your game",
+                    "Nothing, it is always empty"
+                ],
+                answer: 0,
+                explanation: "The event parameter 'e' contains event details, like e.target (the element clicked)!"
+            },
+            {
+                id: 21,
+                category: "addEventListener",
+                type: "fill",
+                prompt: "Select the correct punctuation to wrap the event name in addEventListener:",
+                template: "box.addEventListener([DROP]mouseover[DROP], function() {\n  console.log('Hover!');\n});",
+                options: ["' and '", "< and >", "{ and }", "( and )"],
+                answer: "' and '",
+                explanation: "Event names must be strings wrapped in quotation marks like 'mouseover'!"
+            },
+            {
+                id: 22,
+                category: "addEventListener",
+                type: "mcq",
+                prompt: "What will happen when you click the button with this listener?",
+                code: "var count = 0;\nbtn.addEventListener('click', function() {\n  count = count + 1;\n  console.log(count);\n});",
+                options: [
+                    "It adds 1 to count and prints it every time you click",
+                    "It sets count to 0 forever",
+                    "It deletes the button",
+                    "It prints 'btn' to the console"
+                ],
+                answer: 0,
+                explanation: "Every time the click event happens, the callback runs and adds 1 to count!"
+            },
+            {
+                id: 23,
+                category: "addEventListener",
+                type: "debug",
+                prompt: "Spot the Bug! Why will this event listener fail?",
+                code: "box.addEventListener('click' function() {\n  console.log('Box clicked!');\n});",
+                options: [
+                    "Missing a comma ',' between 'click' and function()",
+                    "The event 'click' must be in uppercase",
+                    "function keyword is not allowed",
+                    "Missing opening bracket"
+                ],
+                answer: 0,
+                explanation: "Parameters inside addEventListener must be separated by a comma: ('click', function() { ... })!"
+            },
+            {
+                id: 24,
+                category: "addEventListener",
+                type: "puzzle",
+                prompt: "Order the blocks to listen for keyboard press events!",
+                blocks: [
+                    "document.",
+                    "addEventListener(",
+                    "'keydown', ",
+                    "function(e) { console.log(e.key); });"
+                ],
+                correctOrder: [0, 1, 2, 3],
+                explanation: "Target document. -> method addEventListener( -> event 'keydown', -> function callback."
+            },
+
+            // --- SECTION 5: Mixed Master Coding Challenges ---
+            {
+                id: 25,
+                category: "Mixed Challenge",
+                type: "mcq",
+                prompt: "Can you call addEventListener multiple times on the same button?",
+                options: [
+                    "Yes! You can attach multiple event listeners to the same element",
+                    "No, only 1 event listener is allowed per button",
+                    "Yes, but only if the button is yellow",
+                    "No, it will break the computer"
+                ],
+                answer: 0,
+                explanation: "Yes! You can add multiple listeners to run different functions on the same event!"
+            },
+            {
+                id: 26,
+                category: "Mixed Challenge",
+                type: "fill",
+                prompt: "Fill in the missing function header to complete this event handler:",
+                template: "btn.addEventListener('click', [DROP]() {\n  alert('Hello World!');\n});",
+                options: ["function", "action", "def", "run"],
+                answer: "function",
+                explanation: "Use 'function()' to define the callback handler!"
+            },
+            {
+                id: 27,
+                category: "Mixed Challenge",
+                type: "puzzle",
+                prompt: "Build code that loops over fruits whenever a button is clicked!",
+                blocks: [
+                    "btn.addEventListener('click', function() {",
+                    "  ['🍎', '🍌'].forEach(",
+                    "    function(fruit) { console.log(fruit); }",
+                    "  ); });"
+                ],
+                correctOrder: [0, 1, 2, 3],
+                explanation: "Button listener -> inner array.forEach -> function(fruit) -> closing brackets."
+            },
+            {
+                id: 28,
+                category: "Debugging",
+                type: "debug",
+                prompt: "Why will this code throw a SyntaxError?",
+                code: "var items = ['Gold', 'Silver'];\nitems.forEach(function item) {\n  console.log(item);\n};",
+                options: [
+                    "The parameter 'item' must be inside parentheses: function(item)",
+                    "Gold and Silver must be numbers",
+                    "console.log needs double quotes",
+                    "var is not supported"
+                ],
+                answer: 0,
+                explanation: "Parameters for functions must be placed inside parentheses like function(item)!"
+            },
+            {
+                id: 29,
+                category: "Output Guessing",
+                type: "mcq",
+                prompt: "What gets logged when this double loop code runs?",
+                code: "var total = 0;\n[1, 2].forEach(function(num) {\n  total = total + num;\n});\nconsole.log(total);",
+                options: ["3", "12", "0", "1"],
+                answer: 0,
+                explanation: "First iteration: total = 0 + 1 = 1. Second iteration: total = 1 + 2 = 3!"
+            },
+            {
+                id: 30,
+                category: "Mastery Quest",
+                type: "mcq",
+                prompt: "🎉 Final Quest! Which statement about forEach() and addEventListener() is TRUE?",
+                options: [
+                    "Both methods take a function() as a callback argument to execute code later!",
+                    "forEach() only works on buttons and addEventListener only works on numbers",
+                    "Neither method can use standard function() syntax",
+                    "Both methods delete elements from the page"
+                ],
+                answer: 0,
+                explanation: "You did it! Both forEach() and addEventListener() accept callback functions to run code!"
+            }
+        ];
+
+        var currentQuestionIdx = 0;
+        var score = 0;
+        var userAnswers = new Array(questions.length).fill(null);
+        var puzzleCurrentOrder = [];
+        var selectedMCQIdx = null;
+
+        // DOM Selectors
+        var startScreen = document.getElementById('start-screen');
+        var quizScreen = document.getElementById('quiz-screen');
+        var victoryScreen = document.getElementById('victory-screen');
+        var startBtn = document.getElementById('start-btn');
+        var scoreDisplay = document.getElementById('score-display');
+        var rankDisplay = document.getElementById('rank-display');
+        var progressBar = document.getElementById('progress-bar');
+        var progressText = document.getElementById('progress-text');
+
+        var questionCategory = document.getElementById('question-category');
+        var questionTypeBadge = document.getElementById('question-type-badge');
+        var questionPrompt = document.getElementById('question-prompt');
+        var codeSnippetBox = document.getElementById('code-snippet-box');
+        var codeSnippetText = document.getElementById('code-snippet-text');
+        var answerContainer = document.getElementById('answer-container');
+        
+        var feedbackBox = document.getElementById('feedback-box');
+        var feedbackTitle = document.getElementById('feedback-title');
+        var feedbackText = document.getElementById('feedback-text');
+
+        var prevBtn = document.getElementById('prev-btn');
+        var submitBtn = document.getElementById('submit-btn');
+        var nextBtn = document.getElementById('next-btn');
+
+        // Scratchpad Selectors
+        var toggleScratchpadBtn = document.getElementById('toggle-scratchpad-btn');
+        var scratchpadModal = document.getElementById('scratchpad-modal');
+        var closeScratchpad = document.getElementById('close-scratchpad');
+        var runScratchpad = document.getElementById('run-scratchpad');
+        var clearScratchpad = document.getElementById('clear-scratchpad');
+        var scratchpadCode = document.getElementById('scratchpad-code');
+        var scratchpadOutput = document.getElementById('scratchpad-output');
+
+        // Event Handlers
+        startBtn.addEventListener('click', startQuiz);
+        prevBtn.addEventListener('click', goToPrevQuestion);
+        nextBtn.addEventListener('click', goToNextQuestion);
+        submitBtn.addEventListener('click', checkAnswer);
+
+        toggleScratchpadBtn.addEventListener('click', function() { scratchpadModal.classList.remove('hidden'); });
+        closeScratchpad.addEventListener('click', function() { scratchpadModal.classList.add('hidden'); });
+        clearScratchpad.addEventListener('click', function() { scratchpadOutput.innerHTML = '<span class="text-gray-500">> Console output cleared.</span>'; });
+        
+        runScratchpad.addEventListener('click', function() {
+            scratchpadOutput.innerHTML = '';
+            var originalLog = console.log;
+            try {
+                console.log = function() {
+                    var args = Array.prototype.slice.call(arguments);
+                    var line = document.createElement('div');
+                    line.className = 'text-green-400 py-0.5 border-b border-gray-800';
+                    line.textContent = '> ' + args.map(function(a) { return typeof a === 'object' ? JSON.stringify(a) : a; }).join(' ');
+                    scratchpadOutput.appendChild(line);
+                };
+                var codeToRun = scratchpadCode.value;
+                new Function(codeToRun)();
+                if (scratchpadOutput.children.length === 0) {
+                    scratchpadOutput.innerHTML = '<span class="text-gray-400">> Code executed successfully (no console output).</span>';
+                }
+            } catch (err) {
+                var errLine = document.createElement('div');
+                errLine.className = 'text-red-400 font-bold py-0.5';
+                errLine.textContent = '❌ Error: ' + err.message;
+                scratchpadOutput.appendChild(errLine);
+            } finally {
+                console.log = originalLog;
+            }
+        });
+
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            victoryScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            currentQuestionIdx = 0;
+            score = 0;
+            userAnswers.fill(null);
+            updateHeaderStats();
+            renderQuestion();
+        }
+
+        function updateHeaderStats() {
+            scoreDisplay.textContent = 'Score: ' + score;
+            
+            var rank = "🐣 Novice Coder";
+            if (score >= 100) rank = "⚡ Code Cadet";
+            if (score >= 200) rank = "🔥 JS Adventurer";
+            if (score >= 270) rank = "🧙‍♂️ JS Wizard";
+            rankDisplay.textContent = rank;
+
+            var percent = ((currentQuestionIdx + 1) / questions.length) * 100;
+            progressBar.style.width = percent + '%';
+            progressText.textContent = 'Question ' + (currentQuestionIdx + 1) + ' of ' + questions.length;
+        }
+
+        function renderQuestion() {
+            var q = questions[currentQuestionIdx];
+
+            feedbackBox.classList.add('hidden');
+            submitBtn.classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            answerContainer.innerHTML = '';
+            selectedMCQIdx = null;
+
+            questionCategory.textContent = q.category;
+            questionPrompt.textContent = q.id + '. ' + q.prompt;
+
+            var typeNames = {
+                mcq: "Multiple Choice",
+                fill: "Fill-in-the-Blank",
+                debug: "Bug Spotter 🐛",
+                puzzle: "Arrange Blocks Puzzle 🧩"
+            };
+            questionTypeBadge.textContent = typeNames[q.type] || "Question";
+
+            if (q.code) {
+                codeSnippetBox.classList.remove('hidden');
+                codeSnippetText.textContent = q.code;
+            } else {
+                codeSnippetBox.classList.add('hidden');
+            }
+
+            prevBtn.disabled = (currentQuestionIdx === 0);
+
+            if (q.type === 'mcq' || q.type === 'debug') {
+                renderMCQ(q);
+            } else if (q.type === 'fill') {
+                renderFillInBlank(q);
+            } else if (q.type === 'puzzle') {
+                renderPuzzle(q);
+            }
+
+            if (userAnswers[currentQuestionIdx] !== null) {
+                showSavedAnswerFeedback();
+            }
+        }
+
+        function renderMCQ(q) {
+            var grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 gap-3';
+
+            q.options.forEach(function(opt, idx) {
+                var btn = document.createElement('button');
+                btn.className = 'mcq-opt w-full text-left p-4 rounded-2xl border-2 border-brand-dark bg-amber-50 hover:bg-brand-yellow font-bold text-base transition flex items-center justify-between btn-pop';
+                btn.innerHTML = '<span>' + escapeHTML(opt) + '</span> <i class="fa-regular fa-circle text-gray-400"></i>';
+                btn.onclick = function() { selectMCQOption(idx); };
+                grid.appendChild(btn);
+            });
+
+            answerContainer.appendChild(grid);
+        }
+
+        function selectMCQOption(idx) {
+            selectedMCQIdx = idx;
+            var buttons = answerContainer.querySelectorAll('.mcq-opt');
+            buttons.forEach(function(btn, i) {
+                if (i === idx) {
+                    btn.className = 'mcq-opt w-full text-left p-4 rounded-2xl border-2 border-brand-dark bg-brand-yellow font-bold text-base transition flex items-center justify-between btn-pop ring-2 ring-brand-purple';
+                    btn.querySelector('i').className = 'fa-solid fa-circle-check text-brand-dark';
+                } else {
+                    btn.className = 'mcq-opt w-full text-left p-4 rounded-2xl border-2 border-brand-dark bg-amber-50 hover:bg-brand-yellow font-bold text-base transition flex items-center justify-between btn-pop';
+                    btn.querySelector('i').className = 'fa-regular fa-circle text-gray-400';
+                }
+            });
+        }
+
+        function renderFillInBlank(q) {
+            var container = document.createElement('div');
+            container.className = 'bg-gray-900 p-6 rounded-2xl border-2 border-brand-dark text-white font-code text-center space-y-4';
+
+            var parts = q.template.split('[DROP]');
+            var dropdown = document.createElement('select');
+            dropdown.id = 'fill-select';
+            dropdown.className = 'bg-brand-yellow text-brand-dark font-bold px-3 py-2 rounded-xl border-2 border-brand-dark focus:outline-none text-base mx-2';
+            
+            var defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '-- choose code --';
+            dropdown.appendChild(defaultOpt);
+
+            q.options.forEach(function(opt) {
+                var o = document.createElement('option');
+                o.value = opt;
+                o.textContent = opt;
+                dropdown.appendChild(o);
+            });
+
+            var codeSpan = document.createElement('div');
+            codeSpan.className = 'text-lg text-emerald-400 leading-relaxed';
+            codeSpan.appendChild(document.createTextNode(parts[0]));
+            codeSpan.appendChild(dropdown);
+            if (parts[1]) {
+                codeSpan.appendChild(document.createTextNode(parts[1]));
+            }
+
+            container.appendChild(codeSpan);
+            answerContainer.appendChild(container);
+        }
+
+        function renderPuzzle(q) {
+            puzzleCurrentOrder = q.blocks.slice().sort(function() { return Math.random() - 0.5; });
+
+            var wrap = document.createElement('div');
+            wrap.className = 'space-y-3';
+
+            var hint = document.createElement('p');
+            hint.className = 'text-sm font-bold text-gray-600 mb-2';
+            hint.textContent = '👇 Click the ▲ ▼ buttons to arrange code blocks in the correct order:';
+            wrap.appendChild(hint);
+
+            var list = document.createElement('div');
+            list.id = 'puzzle-list';
+            list.className = 'space-y-2';
+
+            puzzleCurrentOrder.forEach(function(blockText, index) {
+                var item = document.createElement('div');
+                item.className = 'puzzle-block bg-purple-100 border-2 border-brand-dark p-3 rounded-xl font-code font-bold text-brand-dark flex items-center justify-between shadow-sm hover:bg-purple-200 transition';
+                
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="bg-brand-purple text-white w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold">${index + 1}</span>
+                        <span>${escapeHTML(blockText)}</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="bg-white border border-brand-dark px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100" onclick="movePuzzleBlock(${index}, -1)">▲</button>
+                        <button class="bg-white border border-brand-dark px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100" onclick="movePuzzleBlock(${index}, 1)">▼</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            wrap.appendChild(list);
+            answerContainer.appendChild(wrap);
+        }
+
+        window.movePuzzleBlock = function(fromIndex, direction) {
+            var toIndex = fromIndex + direction;
+            if (toIndex < 0 || toIndex >= puzzleCurrentOrder.length) return;
+
+            var temp = puzzleCurrentOrder[fromIndex];
+            puzzleCurrentOrder[fromIndex] = puzzleCurrentOrder[toIndex];
+            puzzleCurrentOrder[toIndex] = temp;
+
+            var q = questions[currentQuestionIdx];
+            answerContainer.innerHTML = '';
+            
+            var wrap = document.createElement('div');
+            wrap.className = 'space-y-3';
+            var hint = document.createElement('p');
+            hint.className = 'text-sm font-bold text-gray-600 mb-2';
+            hint.textContent = '👇 Click the ▲ ▼ buttons to arrange code blocks in the correct order:';
+            wrap.appendChild(hint);
+
+            var list = document.createElement('div');
+            list.id = 'puzzle-list';
+            list.className = 'space-y-2';
+
+            puzzleCurrentOrder.forEach(function(blockText, index) {
+                var item = document.createElement('div');
+                item.className = 'puzzle-block bg-purple-100 border-2 border-brand-dark p-3 rounded-xl font-code font-bold text-brand-dark flex items-center justify-between shadow-sm hover:bg-purple-200 transition';
+                
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="bg-brand-purple text-white w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold">${index + 1}</span>
+                        <span>${escapeHTML(blockText)}</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="bg-white border border-brand-dark px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100" onclick="movePuzzleBlock(${index}, -1)">▲</button>
+                        <button class="bg-white border border-brand-dark px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-gray-100" onclick="movePuzzleBlock(${index}, 1)">▼</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            wrap.appendChild(list);
+            answerContainer.appendChild(wrap);
+        };
+
+        function checkAnswer() {
+            var q = questions[currentQuestionIdx];
+            var isCorrect = false;
+
+            if (q.type === 'mcq' || q.type === 'debug') {
+                if (selectedMCQIdx === null) {
+                    alert("Please select an answer first!");
+                    return;
+                }
+                isCorrect = (selectedMCQIdx === q.answer);
+            } else if (q.type === 'fill') {
+                var drop = document.getElementById('fill-select');
+                if (!drop || !drop.value) {
+                    alert("Please pick an answer from the dropdown!");
+                    return;
+                }
+                isCorrect = (drop.value === q.answer);
+            } else if (q.type === 'puzzle') {
+                var expectedOrder = q.correctOrder.map(function(i) { return q.blocks[i]; });
+                isCorrect = (JSON.stringify(puzzleCurrentOrder) === JSON.stringify(expectedOrder));
+            }
+
+            userAnswers[currentQuestionIdx] = {
+                isCorrect: isCorrect,
+                explanation: q.explanation
+            };
+
+            if (isCorrect) {
+                score += 10;
+                sound.playCorrect();
+                confetti({
+                    particleCount: 40,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+                feedbackBox.className = 'my-4 p-4 rounded-2xl border-2 border-brand-dark bg-emerald-100 text-emerald-900';
+                feedbackTitle.innerHTML = '🎉 Excellent Job!';
+            } else {
+                sound.playWrong();
+                feedbackBox.className = 'my-4 p-4 rounded-2xl border-2 border-brand-dark bg-rose-100 text-rose-900';
+                feedbackTitle.innerHTML = '💡 Nice Try!';
+            }
+
+            feedbackText.textContent = q.explanation;
+            feedbackBox.classList.remove('hidden');
+
+            updateHeaderStats();
+
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+        }
+
+        function showSavedAnswerFeedback() {
+            var saved = userAnswers[currentQuestionIdx];
+            if (!saved) return;
+
+            if (saved.isCorrect) {
+                feedbackBox.className = 'my-4 p-4 rounded-2xl border-2 border-brand-dark bg-emerald-100 text-emerald-900';
+                feedbackTitle.innerHTML = '🎉 Solved Correctly!';
+            } else {
+                feedbackBox.className = 'my-4 p-4 rounded-2xl border-2 border-brand-dark bg-rose-100 text-rose-900';
+                feedbackTitle.innerHTML = '💡 Explanation';
+            }
+
+            feedbackText.textContent = saved.explanation;
+            feedbackBox.classList.remove('hidden');
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+        }
+
+        function goToPrevQuestion() {
+            if (currentQuestionIdx > 0) {
+                currentQuestionIdx--;
+                renderQuestion();
+                updateHeaderStats();
+            }
+        }
+
+        function goToNextQuestion() {
+            if (currentQuestionIdx < questions.length - 1) {
+                currentQuestionIdx++;
+                renderQuestion();
+                updateHeaderStats();
+            } else {
+                showVictoryScreen();
+            }
+        }
+
+        function showVictoryScreen() {
+            quizScreen.classList.add('hidden');
+            victoryScreen.classList.remove('hidden');
+
+            var totalScore = score;
+            var maxPossible = questions.length * 10;
+            var accuracy = Math.round((totalScore / maxPossible) * 100);
+
+            document.getElementById('final-score').textContent = totalScore;
+            document.getElementById('final-accuracy').textContent = accuracy + '%';
+
+            var stars = "⭐";
+            if (accuracy >= 60) stars = "⭐⭐";
+            if (accuracy >= 85) stars = "⭐⭐⭐";
+            document.getElementById('final-stars').textContent = stars;
+
+            var rank = "🐣 Novice Coder";
+            if (accuracy >= 50) rank = "⚡ Code Cadet";
+            if (accuracy >= 75) rank = "🔥 JS Adventurer";
+            if (accuracy >= 90) rank = "🧙‍♂️ JS Wizard";
+            document.getElementById('final-rank').textContent = rank;
+
+            confetti({
+                particleCount: 120,
+                spread: 100,
+                origin: { y: 0.6 }
+            });
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', startQuiz);
+        document.getElementById('print-cert-btn').addEventListener('click', function() {
+            window.print();
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
